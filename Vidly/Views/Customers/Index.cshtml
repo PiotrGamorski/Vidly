@@ -1,0 +1,148 @@
+﻿@model ICollection<Vidly.Models.Customer>
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Customers</h2>
+
+<button class="btn btn-primary" onclick="location.href='@Url.Action("New", "Customers")';return false;">New Customer</button>
+<div><br></div>
+
+@{
+    if (Model.Any() == false)
+    {
+        <text>We don't have any customers yet.</text>
+    }
+    else
+    {
+        <table id="customers" class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Membership Type</th>
+                    <th>Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    foreach (var customer in Model)
+                    {
+                        <tr>
+                            <td>@Html.ActionLink(customer.Name, "Edit", "Customers", new { id = customer.Id }, null)</td>
+                            <td>@customer.MembershipType.Name</td>
+                            <td>
+                                <button class="btn btn-primary js-delete"
+                                        data-customer-id="@customer.Id"
+                                        data-customer-name="@customer.Name">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+}
+
+<table id="Api-customers" class="table table-bordered table-hover">
+    <thead id="Api-customers-thead">
+        @*<tr>
+            <th>Customer</th>
+            <th>Membership Type</th>
+            <th>Delete</th>
+        </tr>*@
+    </thead>
+    <tbody id="Api-tbody-id"></tbody>
+</table>
+
+@section scripts{
+    <script>
+        $(document).ready(function () {
+            var tHead = $("#Api-customers-thead");
+            var customer = $("#Api-tbody-id");
+            //console.log(customer);
+            $.ajax({
+                url: "/api/customers",
+                method: "GET",
+                success: function (data) {
+                    tHead.append("<tr>"
+                        + "<th>Customer</th>"
+                        + "<th>Membership Type</th>"
+                        + "<th>Delete</th>"
+                        + "</tr>");
+                    $.each(data, function (i, item) {
+                        customer.append("<tr><td>" + item.name.link("/customers/edit/" + item.id) + "</td>"
+                            + "<td>" + item.membershipType.name + "</td>"
+                            + "<td><button class='btn btn-primary JsDelete' data-customerDto-id=" + item.id
+                            + ">Delete</td>"
+                            + "</tr>");
+                        //console.log($(".JsDelete").attr("data-customerDto-name"));
+                    });
+                },
+                error: function () {
+                    bootbox.alert("Ups... something went wrong.")
+                }
+            })
+        });
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            $("#Api-customers").on("click", ".JsDelete", function () {
+                var button = $(this);
+                var buttonId = button.attr("data-customerDto-id");
+                $.ajax({
+                    url: "/api/customers/" + buttonId,
+                    method: "GET",
+                    success: function (data) {
+                        var customerDtoName = data.name;
+                        //console.log(customerDtoName);
+                        bootbox.confirm("Are you sure you want to delete " + customerDtoName + "?", function (result) {
+                            if (result) {
+                                $.ajax({
+                                    url: "/api/customers/" + buttonId,
+                                    method: "DELETE",
+                                    success: function () {
+                                        button.parents("tr").remove();
+                                    },
+                                    error: function () {
+                                        bootbox.alert("Ups... something went wrong. Cannot delete " + customerDtoName + ".")
+                                    }
+                                })
+                            }
+                        });
+                    },
+                    error: function () {
+                        bootbox.alert("Ups... something went wrong. Cannot read " + customerDtoName + ".")
+                    }
+                })
+            })
+        })
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            $("#customers").on("click", ".js-delete", function () {
+                var button = $(this);
+                var buttonId = button.attr("data-customer-id");
+                var buttonName = button.attr("data-customer-name");
+                bootbox.confirm("Are you sure you want to delete " + buttonName + "?", function (result) {
+                    if (result) {
+                        $.ajax({
+                            url: "/api/customers/" + buttonId,
+                            method: "GET",
+                            succcess: function () {
+                                button.parents("tr").remove();
+                            },
+                            error: function () {
+                                bootbox.alert("Ups... something went wrong. Cannot delete " + buttonName + ".")
+                            }
+                        })
+                    }
+                })
+            })
+        })
+    </script>
+}
